@@ -1,0 +1,693 @@
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index a7e0d9f6c0..16495793b7 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -701,7 +701,8 @@ dtb-$(CONFIG_MACH_SUN50I_H6) += \
+ 	sun50i-h6-tanix-tx6.dtb \
+ 	sun50i-h6-tanix-tx6-mini.dtb
+ dtb-$(CONFIG_MACH_SUN50I_H616) += \
+-	sun50i-h616-orangepi-zero2.dtb
++	sun50i-h616-orangepi-zero2.dtb \
++	sun50i-h616-bigtreetech-cb1.dtb
+ dtb-$(CONFIG_MACH_SUN50I) += \
+ 	sun50i-a64-amarula-relic.dtb \
+ 	sun50i-a64-bananapi-m64.dtb \
+diff --git a/arch/arm/dts/sun50i-h616-bigtreetech-cb1.dts b/arch/arm/dts/sun50i-h616-bigtreetech-cb1.dts
+new file mode 100644
+index 0000000000..520d186344
+--- /dev/null
++++ b/arch/arm/dts/sun50i-h616-bigtreetech-cb1.dts
+@@ -0,0 +1,242 @@
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++/*
++ * Copyright (C) 2020 Arm Ltd.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "BIGTREETECH CB1";
++	compatible = "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac1;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			default-state = "on";
++		};
++
++		led-1 {
++			function = LED_FUNCTION_STATUS;
++			color = <LED_COLOR_ID_GREEN>;
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		/* board wide 5V supply directly from the USB-C socket */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		enable-active-high;
++		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		status = "okay";
++	};
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++/* USB 2 & 3 are on headers only. */
++
++&emac0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rgmii_pins>;
++	phy-mode = "rgmii";
++	phy-handle = <&ext_rgmii_phy>;
++	phy-supply = <&reg_dcdce>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio0 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dcdce>;
++	// cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	bus-width = <4>;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&r_rsb {
++	status = "okay";
++
++	axp305: pmic@745 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		reg = <0x745>;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-sys";
++			};
++
++			reg_aldo2: aldo2 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext";
++			};
++
++			reg_aldo3: aldo3 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext2";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			bldo2 {
++				/* unused */
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				/* reserved */
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
++			};
++
++			reg_dcdca: dcdca {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdcc: dcdcc {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdcd: dcdcd {
++				regulator-always-on;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdce: dcdce {
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-mmc";
++			};
++
++			sw {
++				/* unused */
++			};
++		};
++	};
++};
++
++&spi0  {
++	status = "okay";
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
++
++&usbotg {
++	dr_mode = "peripheral";
++	status = "okay";
++};
++
++&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
+diff --git a/arch/arm/mach-sunxi/pmic_bus.c b/arch/arm/mach-sunxi/pmic_bus.c
+index c090840637..179aa088b2 100644
+--- a/arch/arm/mach-sunxi/pmic_bus.c
++++ b/arch/arm/mach-sunxi/pmic_bus.c
+@@ -22,6 +22,7 @@
+ #define AXP209_I2C_ADDR			0x34
+ 
+ #define AXP305_I2C_ADDR			0x36
++#define AXP1530_I2C_ADDR		0x36
+ 
+ #define AXP221_CHIP_ADDR		0x68
+ 
+@@ -34,6 +35,8 @@ static int pmic_i2c_address(void)
+ 		return AXP152_I2C_ADDR;
+ 	if (IS_ENABLED(CONFIG_AXP305_POWER))
+ 		return AXP305_I2C_ADDR;
++	if (IS_ENABLED(CONFIG_AXP1530_POWER))
++		return AXP1530_I2C_ADDR;
+ 
+ 	/* Other AXP2xx and AXP8xx variants */
+ 	return AXP209_I2C_ADDR;
+diff --git a/board/sunxi/board.c b/board/sunxi/board.c
+index 21a2407e06..4dc679203d 100644
+--- a/board/sunxi/board.c
++++ b/board/sunxi/board.c
+@@ -586,7 +586,9 @@ void sunxi_board_init(void)
+ 
+ #if defined CONFIG_AXP152_POWER || defined CONFIG_AXP209_POWER || \
+ 	defined CONFIG_AXP221_POWER || defined CONFIG_AXP305_POWER || \
+-	defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER
++	defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER || \
++	defined CONFIG_AXP1530_POWER
++
+ 	power_failed = axp_init();
+ 
+ 	if (IS_ENABLED(CONFIG_AXP_DISABLE_BOOT_ON_POWERON) && !power_failed) {
+@@ -600,14 +602,15 @@ void sunxi_board_init(void)
+ 	}
+ 
+ #if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
+-	defined CONFIG_AXP818_POWER
++	defined CONFIG_AXP818_POWER || defined CONFIG_AXP1530_POWER
+ 	power_failed |= axp_set_dcdc1(CONFIG_AXP_DCDC1_VOLT);
+ #endif
+ #if !defined(CONFIG_AXP305_POWER)
+ 	power_failed |= axp_set_dcdc2(CONFIG_AXP_DCDC2_VOLT);
+ 	power_failed |= axp_set_dcdc3(CONFIG_AXP_DCDC3_VOLT);
+ #endif
+-#if !defined(CONFIG_AXP209_POWER) && !defined(CONFIG_AXP818_POWER)
++#if !defined(CONFIG_AXP209_POWER) && !defined(CONFIG_AXP818_POWER) && \
++	!defined(CONFIG_AXP1530_POWER)
+ 	power_failed |= axp_set_dcdc4(CONFIG_AXP_DCDC4_VOLT);
+ #endif
+ #if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
+@@ -616,13 +619,14 @@ void sunxi_board_init(void)
+ #endif
+ 
+ #if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || \
+-	defined CONFIG_AXP818_POWER
++	defined CONFIG_AXP818_POWER || defined CONFIG_AXP1530_POWER
+ 	power_failed |= axp_set_aldo1(CONFIG_AXP_ALDO1_VOLT);
+ #endif
+-#if !defined(CONFIG_AXP305_POWER)
++#if !defined(CONFIG_AXP305_POWER) && !defined(CONFIG_AXP1530_POWER)
+ 	power_failed |= axp_set_aldo2(CONFIG_AXP_ALDO2_VOLT);
+ #endif
+-#if !defined(CONFIG_AXP152_POWER) && !defined(CONFIG_AXP305_POWER)
++#if !defined(CONFIG_AXP152_POWER) && !defined(CONFIG_AXP305_POWER) && \
++	!defined(CONFIG_AXP1530_POWER)
+ 	power_failed |= axp_set_aldo3(CONFIG_AXP_ALDO3_VOLT);
+ #endif
+ #ifdef CONFIG_AXP209_POWER
+@@ -630,8 +634,9 @@ void sunxi_board_init(void)
+ #endif
+ 
+ #if defined(CONFIG_AXP221_POWER) || defined(CONFIG_AXP809_POWER) || \
+-	defined(CONFIG_AXP818_POWER)
++	defined(CONFIG_AXP818_POWER) || defined CONFIG_AXP1530_POWER
+ 	power_failed |= axp_set_dldo(1, CONFIG_AXP_DLDO1_VOLT);
++#if !defined CONFIG_AXP1530_POWER
+ 	power_failed |= axp_set_dldo(2, CONFIG_AXP_DLDO2_VOLT);
+ #if !defined CONFIG_AXP809_POWER
+ 	power_failed |= axp_set_dldo(3, CONFIG_AXP_DLDO3_VOLT);
+@@ -641,6 +646,7 @@ void sunxi_board_init(void)
+ 	power_failed |= axp_set_eldo(2, CONFIG_AXP_ELDO2_VOLT);
+ 	power_failed |= axp_set_eldo(3, CONFIG_AXP_ELDO3_VOLT);
+ #endif
++#endif
+ 
+ #ifdef CONFIG_AXP818_POWER
+ 	power_failed |= axp_set_fldo(1, CONFIG_AXP_FLDO1_VOLT);
+diff --git a/configs/bigtreetech_cb1_defconfig b/configs/bigtreetech_cb1_defconfig
+new file mode 100644
+index 0000000000..1310ca16d4
+--- /dev/null
++++ b/configs/bigtreetech_cb1_defconfig
+@@ -0,0 +1,31 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun50i-h616-bigtreetech-cb1"
++CONFIG_SPL=y
++CONFIG_DRAM_SUN50I_H616_WRITE_LEVELING=y
++CONFIG_DRAM_SUN50I_H616_READ_CALIBRATION=y
++CONFIG_DRAM_SUN50I_H616_READ_TRAINING=y
++CONFIG_DRAM_SUN50I_H616_WRITE_TRAINING=y
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_MACPWR=""
++CONFIG_PWRLED="PC12"
++CONFIG_MMC0_CD_PIN=""
++CONFIG_MMC1_CD_PIN=""
++CONFIG_MMC2_CD_PIN=""
++CONFIG_MMC3_CD_PIN=""
++CONFIG_MMC1_PINS=""
++CONFIG_MMC2_PINS=""
++CONFIG_MMC3_PINS=""
++CONFIG_R_I2C_ENABLE=y
++# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_PHY_REALTEK=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_SPI=y
++CONFIG_AXP305_POWER=n
++CONFIG_AXP1530_POWER=y
+diff --git a/drivers/power/Kconfig b/drivers/power/Kconfig
+index 2c20dc7c83..19d0073722 100644
+--- a/drivers/power/Kconfig
++++ b/drivers/power/Kconfig
+@@ -124,11 +124,20 @@ config SY8106A_POWER
+ 	Select this to enable support for the SY8106A pmic found on some
+ 	H3 boards.
+ 
++config AXP1530_POWER
++	bool "axp1530 pmic support"
++	depends on MACH_SUN50I_H616
++	select AXP_PMIC_BUS
++	select CMD_POWEROFF
++	---help---
++	Select this to enable support for the axp1530 pmic found on some
++	H616 boards.
+ endchoice
+ 
+ config AXP_DCDC1_VOLT
+ 	int "axp pmic dcdc1 voltage"
+-	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER
++	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP1530_POWER
++	default 960 if MACH_SUN50I_H616
+ 	default 3300 if AXP818_POWER || MACH_SUN8I_R40
+ 	default 3000 if MACH_SUN6I || MACH_SUN8I || MACH_SUN9I
+ 	---help---
+@@ -142,8 +151,9 @@ config AXP_DCDC1_VOLT
+ 
+ config AXP_DCDC2_VOLT
+ 	int "axp pmic dcdc2 voltage"
+-	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER
++	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP1530_POWER
+ 	default 900 if AXP818_POWER
++	default 1000 if AXP1530_POWER
+ 	default 1400 if AXP152_POWER || AXP209_POWER
+ 	default 1200 if MACH_SUN6I
+ 	default 1100 if MACH_SUN8I
+@@ -160,9 +170,9 @@ config AXP_DCDC2_VOLT
+ 
+ config AXP_DCDC3_VOLT
+ 	int "axp pmic dcdc3 voltage"
+-	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER
++	depends on AXP152_POWER || AXP209_POWER || AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP1530_POWER
+ 	default 900 if AXP809_POWER || AXP818_POWER
+-	default 1500 if AXP152_POWER
++	default 1500 if AXP152_POWER || AXP1530_POWER
+ 	default 1250 if AXP209_POWER
+ 	default 1100 if MACH_SUN8I_R40
+ 	default 1200 if MACH_SUN6I || MACH_SUN8I
+@@ -207,9 +217,9 @@ config AXP_DCDC5_VOLT
+ 
+ config AXP_ALDO1_VOLT
+ 	int "axp pmic (a)ldo1 voltage"
+-	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER
++	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP1530_POWER
+ 	default 0 if MACH_SUN6I || MACH_SUN8I_R40
+-	default 1800 if MACH_SUN8I_A83T
++	default 1800 if MACH_SUN8I_A83T || AXP1530_POWER
+ 	default 3000 if MACH_SUN8I || MACH_SUN9I
+ 	---help---
+ 	Set the voltage (mV) to program the axp pmic aldo1 at, set to 0 to
+@@ -306,7 +316,8 @@ config AXP_ALDO4_VOLT
+ 
+ config AXP_DLDO1_VOLT
+ 	int "axp pmic dldo1 voltage"
+-	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER
++	depends on AXP221_POWER || AXP809_POWER || AXP818_POWER || AXP1530_POWER
++	default 3300 if AXP1530_POWER
+ 	default 0
+ 	---help---
+ 	Set the voltage (mV) to program the axp pmic dldo1 at, set to 0 to
+diff --git a/drivers/power/Makefile b/drivers/power/Makefile
+index f805027784..e91689360c 100644
+--- a/drivers/power/Makefile
++++ b/drivers/power/Makefile
+@@ -17,6 +17,7 @@ obj-$(CONFIG_AXP221_POWER)	+= axp221.o
+ obj-$(CONFIG_AXP305_POWER)	+= axp305.o
+ obj-$(CONFIG_AXP809_POWER)	+= axp809.o
+ obj-$(CONFIG_AXP818_POWER)	+= axp818.o
++obj-$(CONFIG_AXP1530_POWER)	+= axp1530.o
+ obj-$(CONFIG_EXYNOS_TMU)	+= exynos-tmu.o
+ obj-$(CONFIG_FTPMU010_POWER)	+= ftpmu010.o
+ obj-$(CONFIG_SY8106A_POWER)	+= sy8106a.o
+diff --git a/drivers/power/axp1530.c b/drivers/power/axp1530.c
+new file mode 100755
+index 0000000000..da04959bb3
+--- /dev/null
++++ b/drivers/power/axp1530.c
+@@ -0,0 +1,172 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * AXP1530 driver based on AXP221 driver
++ *
++ * (C) Copyright 2022 Douglas Hammond <wizhippo@gmail.com>
++ *
++ * Based on axp221.c
++ * (C) Copyright 2015 Vishnu Patekar <vishnuptekar0510@gmail.com>
++ * (C) Copyright 2014 Hans de Goede <hdegoede@redhat.com>
++ * (C) Copyright 2013 Oliver Schinagl <oliver@schinagl.nl>
++ */
++
++#include <common.h>
++#include <command.h>
++#include <errno.h>
++#include <asm/arch/pmic_bus.h>
++#include <axp_pmic.h>
++
++static u8 axp1530_mvolt_to_cfg(int mvolt, int min, int max, int div)
++{
++	if (mvolt < min)
++		mvolt = min;
++	else if (mvolt > max)
++		mvolt = max;
++
++	return  (mvolt - min) / div;
++}
++
++int axp_set_dcdc1(unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP1530_OUTPUT_CTRL1,
++					AXP1530_OUTPUT_CTRL1_DCDC1_EN);
++
++	if (mvolt >= 1600)
++		cfg = 16 + 70 + axp1530_mvolt_to_cfg(mvolt, 1600, 3400, 100);
++	else if (mvolt >= 1220)
++		cfg = 70 + axp1530_mvolt_to_cfg(mvolt, 1220, 1540, 20);
++	else
++		cfg = axp1530_mvolt_to_cfg(mvolt, 500, 1200, 10);
++
++	ret = pmic_bus_write(AXP1530_DCDC1_CTRL, cfg);
++	if (ret)
++		return ret;
++
++	return pmic_bus_setbits(AXP1530_OUTPUT_CTRL1,
++				AXP1530_OUTPUT_CTRL1_DCDC1_EN);
++
++}
++
++int axp_set_dcdc2(unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP1530_OUTPUT_CTRL1,
++					AXP1530_OUTPUT_CTRL1_DCDC2_EN);
++
++	if (mvolt >= 1220)
++		cfg = 70 + axp1530_mvolt_to_cfg(mvolt, 1220, 1540, 20);
++	else
++		cfg = axp1530_mvolt_to_cfg(mvolt, 500, 1200, 10);
++
++	ret = pmic_bus_write(AXP1530_DCDC2_CTRL, cfg);
++	if (ret)
++		return ret;
++
++	return pmic_bus_setbits(AXP1530_OUTPUT_CTRL1,
++				AXP1530_OUTPUT_CTRL1_DCDC2_EN);
++}
++
++int axp_set_dcdc3(unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP1530_OUTPUT_CTRL1,
++					AXP1530_OUTPUT_CTRL1_DCDC3_EN);
++
++	if (mvolt >= 1140)
++		cfg = 70 + axp1530_mvolt_to_cfg(mvolt, 1140, 1840, 20);
++	else
++		cfg = axp1530_mvolt_to_cfg(mvolt, 800, 1120, 10);
++	// apx313a datasheet starts at 800, from what I can find the 1530 is alike
++
++	ret = pmic_bus_write(AXP1530_DCDC3_CTRL, cfg);
++	if (ret)
++		return ret;
++
++	return pmic_bus_setbits(AXP1530_OUTPUT_CTRL1,
++				AXP1530_OUTPUT_CTRL1_DCDC3_EN);
++}
++
++int axp_set_aldo1(unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	cfg = axp1530_mvolt_to_cfg(mvolt, 500, 3500, 100);
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP1530_OUTPUT_CTRL1,
++					AXP1530_OUTPUT_CTRL1_ALDO1_EN);
++
++	ret = pmic_bus_write(AXP1530_ALDO1_CTRL, cfg);
++	if (ret)
++		return ret;
++
++	return pmic_bus_setbits(AXP1530_OUTPUT_CTRL1,
++				AXP1530_OUTPUT_CTRL1_ALDO1_EN);
++}
++
++int axp_set_dldo(int dldo_num, unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	if (dldo_num != 1)
++		return -EINVAL;
++
++	cfg = axp1530_mvolt_to_cfg(mvolt, 500, 3500, 100);
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP1530_OUTPUT_CTRL1,
++					AXP1530_OUTPUT_CTRL1_DLDO1_EN);
++
++	ret = pmic_bus_write(AXP1530_DLDO1_CTRL, cfg);
++	if (ret)
++		return ret;
++
++	return pmic_bus_setbits(AXP1530_OUTPUT_CTRL1,
++				AXP1530_OUTPUT_CTRL1_DLDO1_EN);
++}
++
++int axp_init(void)
++{
++	u8 axp_chip_id;
++	int ret;
++
++	ret = pmic_bus_init();
++	if (ret)
++		return ret;
++
++	ret = pmic_bus_read(AXP1530_CHIP_ID, &axp_chip_id);
++	if (ret)
++		return ret;
++
++	if (!(axp_chip_id == 0x51))
++		return -ENODEV;
++	else
++		return ret;
++
++	return 0;
++}
++
++// #if !IS_ENABLED(CONFIG_SYSRESET_CMD_POWEROFF)
++// int do_poweroff(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
++// {
++// 	pmic_bus_write(AXP1530_SHUTDOWN, AXP1530_SHUTDOWN_POWEROFF);
++
++// 	/* infinite loop during shutdown */
++// 	while (1) {}
++
++// 	/* not reached */
++// 	return 0;
++// }
++// #endif
+diff --git a/include/axp1530.h b/include/axp1530.h
+new file mode 100755
+index 0000000000..617c97367c
+--- /dev/null
++++ b/include/axp1530.h
+@@ -0,0 +1,24 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2015 Vishnu Patekar <vishnupatekar0510@gmail.com>
++ *
++ * X-Powers AXP1530 Power Management IC driver
++ */
++
++#define AXP1530_CHIP_ID		0x48
++
++#define AXP1530_OUTPUT_CTRL1	0x10
++#define AXP1530_OUTPUT_CTRL1_DCDC1_EN	(1 << 0)
++#define AXP1530_OUTPUT_CTRL1_DCDC2_EN	(1 << 1)
++#define AXP1530_OUTPUT_CTRL1_DCDC3_EN	(1 << 2)
++#define AXP1530_OUTPUT_CTRL1_ALDO1_EN	(1 << 3)
++#define AXP1530_OUTPUT_CTRL1_DLDO1_EN	(1 << 4)
++
++#define AXP1530_DCDC1_CTRL	0x13
++#define AXP1530_DCDC2_CTRL	0x14
++#define AXP1530_DCDC3_CTRL	0x15
++#define AXP1530_ALDO1_CTRL	0x16
++#define AXP1530_DLDO1_CTRL	0x17
++
++#define AXP1530_SHUTDOWN		0x32
++#define AXP1530_SHUTDOWN_POWEROFF	(1 << 7)
+diff --git a/include/axp_pmic.h b/include/axp_pmic.h
+index 01ebba6347..a85ab0a817 100644
+--- a/include/axp_pmic.h
++++ b/include/axp_pmic.h
+@@ -15,6 +15,7 @@
+ #include <axp305.h>
+ #include <axp809.h>
+ #include <axp818.h>
++#include <axp1530.h>
+ 
+ #define AXP_PMIC_MODE_REG		0x3e
+ #define AXP_PMIC_MODE_I2C		0x00

@@ -94,8 +94,10 @@ prepare_host() {
 	if grep -qE "(Microsoft|WSL)" /proc/version; then
 		if [ -f /.dockerenv ]; then
 			display_alert "Building images using Docker on WSL2 may fail" "" "wrn"
+		elif pgrep systemd > /dev/null; then
+			display_alert "Building images on WSL2 may fail" "" "wrn"
 		else
-			exit_with_error "Windows subsystem for Linux is not a supported build environment"
+			exit_with_error "Windows subsystem for Linux wihtout systemd support is not a supported build environment"
 		fi
 	fi
 
